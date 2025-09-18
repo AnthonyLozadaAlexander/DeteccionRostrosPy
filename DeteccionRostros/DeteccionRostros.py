@@ -11,7 +11,7 @@ while True:
     # Lee un frame de la cámara
     ret, frame = cap.read()
     
-    height, width = frame.shape[:2]
+    height, width = frame.shape[:2] # la tupla frame.shape[:2] obtiene el alto y ancho de la imagen y se lo asigna a height y width ordenadamente
     center_image = np.array([width/2, height/2])
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) # Convertimos la imagen a escala de grises
@@ -29,7 +29,7 @@ while True:
         cv2.putText(frame, "Rostro", (x, y-30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2, cv2.LINE_AA)
         cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 3)  # Verde para rostro
         
-        position_vector = np.array([x, y])
+        position_vector = np.array([x, y]) # Vector de posición del rostro detectado
         cv2.putText(frame, f"Posicion: [{x}, {y}]", (x, y-50), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
 
