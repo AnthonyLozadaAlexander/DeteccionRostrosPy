@@ -1,88 +1,102 @@
 ﻿import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(0) # 0 para la cámara predeterminada, 1 para una cámara externa
+# Inicializar la cámara
+camara = cv2.VideoCapture(0)
 
-cara_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml") # Cargamos el clasificador preentrenado para detección de rostros
+# Cargar los clasificadores para detectar caras y ojos
+detector_caras = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+detector_ojos = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
 
-ojos_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml") # Cargamos el clasificador preentrenado para detección de ojos
-
+# Bucle principal
 while True:
-    # Lee un frame de la cámara
-    ret, frame = cap.read()
+    # Capturar imagen de la cámara
+    exito, imagen = camara.read()
     
-    height, width = frame.shape[:2] # la tupla frame.shape[:2] obtiene el alto y ancho de la imagen y se lo asigna a height y width ordenadamente
-    center_image = np.array([width/2, height/2])
-
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) # Convertimos la imagen a escala de grises
-    caras = cara_cascade.detectMultiScale(gray, 1.3, 5) # Detectamos rostros en la imagen
+    # Obtener dimensiones de la imagen
+    alto = imagen.shape[0]
+    ancho = imagen.shape[1]
     
-    # x, y, w, h son las coordenadas y dimensiones del rectángulo que encierra el rostro detectado
-    # x = coordenada x del rectángulo
-    # y = coordenada y del rectángulo
-    # w = ancho del rectángulo
-    # h = alto del rectángulo
+    # Calcular el centro de la imagen
+    centro_x = ancho / 2
+    centro_y = alto / 2
     
-    for(x, y, w, h) in caras:
-
-        # Rectángulo verde para el rostro (más visible)
-        cv2.putText(frame, "Rostro", (x, y-30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2, cv2.LINE_AA)
-        cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 3)  # Verde para rostro
-        
-        position_vector = np.array([x, y]) # Vector de posición del rostro detectado
-        cv2.putText(frame, f"Posicion: [{x}, {y}]", (x, y-50), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
-
-        center_face = np.array([x + w/2, y + h/2])
-        displacement_vector = center_face - center_image
-        distance = np.linalg.norm(displacement_vector)
-
-        
-        cv2.putText(frame, f"Dist: {distance:.2f}", 
-                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,255), 2)
-        
-        top_left = np.array([x, y])
-        bottom_right = np.array([x + w, y + h])
-        midpoint = (top_left + bottom_right) / 2
-        cv2.circle(frame, tuple(midpoint.astype(int)), 5, (0,0,255), -1)
-
-        area = w * h
-        cv2.putText(frame, f"Area: {area}", (x, y-70), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (170,255,45), 1)
-        
-
-        # Flecha apuntando al rostro con texto en la parte trasera
-        # arrow_start = (x-50, y-10)
-        # arrow_end = (x, y+10)
-        # cv2.arrowedLine(frame, arrow_start, arrow_end, (0,255,0), 3)
-        # cv2.putText(frame, "Rostro", (arrow_start[0]-30, arrow_start[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2, cv2.LINE_AA)
-        
-        roi_gray = gray[y:y+h, x:x+w]  # Corregido: usamos altura h en lugar de w
-        roi_color = frame[y:y+h, x:x+w]
-        
-        ojos = ojos_cascade.detectMultiScale(roi_gray,1.3,5) # Detectamos ojos dentro del rostro detectado    
+    # Convertir imagen a escala de grises (necesario para detección)
+    imagen_gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
     
-        for(ox, oy, ow, oh) in ojos:
-            cv2.rectangle(frame, (x+ox, y+oy), (x+ox+ow, y+oy+oh), (255,0,0), 1)
-            rel_x = ox / w
-            rel_y = oy / h
-            cv2.putText(frame, f"[{rel_x:.2f}, {rel_y:.2f}]", 
-                        (x+ox, y+oy+oh+25), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (150,255,0), 1)
-
-            # Rectángulo azul para los ojos
-            #cv2.putText(frame, "Ojo", (x+ox, y+oy-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 2, cv2.LINE_AA)
-            cv2.rectangle(roi_color, (ox,oy), (ox+ow, oy+oh), (430,160,0), 2)  # Azul para ojos
+    # Detectar caras en la imagen
+    caras_detectadas = detector_caras.detectMultiScale(imagen_gris, 1.3, 5)
+    
+    # Procesar cada cara detectada
+    for (cara_x, cara_y, cara_ancho, cara_alto) in caras_detectadas:
+        
+        # Dibujar rectángulo verde alrededor de la cara
+        cv2.rectangle(imagen, (cara_x, cara_y), (cara_x + cara_ancho, cara_y + cara_alto), (0, 255, 0), 3)
+        
+        # Escribir texto "Rostro" encima del rectángulo
+        cv2.putText(imagen, "Rostro", (cara_x, cara_y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        
+        # Mostrar posición de la cara
+        cv2.putText(imagen, f"Posicion: [{cara_x}, {cara_y}]", (cara_x, cara_y - 50), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        
+        # Calcular centro de la cara
+        centro_cara_x = cara_x + (cara_ancho / 2)
+        centro_cara_y = cara_y + (cara_alto / 2)
+        
+        # Calcular distancia desde el centro de la imagen al centro de la cara
+        distancia_x = centro_cara_x - centro_x
+        distancia_y = centro_cara_y - centro_y
+        distancia_total = np.sqrt(distancia_x**2 + distancia_y**2)
+        
+        # Mostrar la distancia en pantalla
+        cv2.putText(imagen, f"Dist: {distancia_total:.2f}", (10, 30), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+        
+        # Dibujar un punto rojo en el centro de la cara
+        centro_cara_x_int = int(centro_cara_x)
+        centro_cara_y_int = int(centro_cara_y)
+        cv2.circle(imagen, (centro_cara_x_int, centro_cara_y_int), 5, (0, 0, 255), -1)
+        
+        # Calcular área de la cara
+        area_cara = cara_ancho * cara_alto
+        cv2.putText(imagen, f"Area: {area_cara}", (cara_x, cara_y - 70), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (170, 255, 45), 1)
+        
+        # Extraer región de interés (ROI) - solo el área de la cara
+        region_cara_gris = imagen_gris[cara_y:cara_y + cara_alto, cara_x:cara_x + cara_ancho]
+        region_cara_color = imagen[cara_y:cara_y + cara_alto, cara_x:cara_x + cara_ancho]
+        
+        # Detectar ojos dentro de la región de la cara
+        ojos_detectados = detector_ojos.detectMultiScale(region_cara_gris, 1.3, 5)
+        
+        # Procesar cada ojo detectado
+        for (ojo_x, ojo_y, ojo_ancho, ojo_alto) in ojos_detectados:
             
-            # Flecha apuntando al ojo con texto en la parte trasera (similar al rostro)
-            # eye_arrow_start = (x+ox-30, y+oy-5)
-            # eye_arrow_end = (x+ox, y+oy+5)
-            # cv2.arrowedLine(frame, eye_arrow_start, eye_arrow_end, (255,0,0), 2)
-            # cv2.putText(frame, "Ojo", (eye_arrow_start[0]-20, eye_arrow_start[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,0,0), 2, cv2.LINE_AA)
+            # Dibujar rectángulo azul alrededor del ojo en la imagen original
+            cv2.rectangle(imagen, (cara_x + ojo_x, cara_y + ojo_y), 
+                         (cara_x + ojo_x + ojo_ancho, cara_y + ojo_y + ojo_alto), (255, 0, 0), 1)
             
-    cv2.imshow("Deteccion De Rostros Y Ojos", frame)
+            # Calcular posición relativa del ojo dentro de la cara (0.0 a 1.0)
+            posicion_relativa_x = ojo_x / cara_ancho
+            posicion_relativa_y = ojo_y / cara_alto
+            
+            # Mostrar posición relativa del ojo
+            cv2.putText(imagen, f"[{posicion_relativa_x:.2f}, {posicion_relativa_y:.2f}]", 
+                       (cara_x + ojo_x, cara_y + ojo_y + ojo_alto + 25), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.3, (150, 255, 0), 1)
+            
+            # Dibujar rectángulo adicional en la región de color
+            cv2.rectangle(region_cara_color, (ojo_x, ojo_y), 
+                         (ojo_x + ojo_ancho, ojo_y + ojo_alto), (430, 160, 0), 2)
     
-    if(cv2.waitKey(1) == ord("q")):
+    # Mostrar la imagen con las detecciones
+    cv2.imshow("Deteccion De Rostros Y Ojos", imagen)
+    
+    # Salir si se presiona la tecla 'q'
+    if cv2.waitKey(1) == ord("q"):
         break
-    
-cap.release()
+
+# Liberar recursos
+camara.release()
 cv2.destroyAllWindows()
